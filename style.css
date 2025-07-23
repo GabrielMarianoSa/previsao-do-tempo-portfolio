@@ -1,0 +1,77 @@
+body {
+  background: linear-gradient(to bottom, #74ebd5, #ACB6E5);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.oculto {
+  display: none;
+}
+
+#resultado {
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+}
+
+#resultado.aparecer {
+  opacity: 1;
+}
+
+body.dark-mode {
+  background: #1c1c1c !important;
+  color: #f0f0f0;
+}
+
+.dark-mode .card {
+  background: #2c2c2c;
+  color: #f0f0f0;
+}
+
+.dark-mode .btn-primary {
+  background-color: #333;
+  border: none;
+}
+
+#mapa {
+  display: none;
+  height: 300px;
+  margin-top: 1rem;
+}
+
+#mapa.visivel {
+  display: block;
+}
+
+#cards-previsao {
+  justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+.previsao-card {
+  background: #f8f9fa;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .previsao-card {
+  background: #333;
+  color: white;
+}
+
+/* Acessibilidade: foco visível para navegação por teclado */
+:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+button[onclick="lerConteudo()"] {
+  width: 50px;
+  height: 50px;
+  font-size: 18px;
+  padding: 0;
+}
+
+[vw] {
+  z-index: 9999 !important;
+}
