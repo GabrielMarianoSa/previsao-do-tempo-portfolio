@@ -1,77 +1,273 @@
+:root {
+  --font-main: "Outfit", sans-serif;
+  --primary-color: #4facfe;
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-highlight: rgba(255, 255, 255, 0.5);
+  --text-color: #fff;
+  --card-radius: 24px;
+}
+
+/* Fundo Animado e Responsivo */
 body {
-  background: linear-gradient(to bottom, #74ebd5, #ACB6E5);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-main);
+  color: var(--text-color);
+  background-size: 300% 300%;
+  min-height: 100vh;
+  transition: background-image 1.5s ease;
+  animation: gradientBG 20s ease infinite;
 }
 
-.oculto {
-  display: none;
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-#resultado {
-  opacity: 0;
-  transition: opacity 0.6s ease-in-out;
+/* Cores dos Climas (Mantive as que você gostou) */
+body.weather-default {
+  background-image: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+}
+body.weather-sunny {
+  background-image: linear-gradient(-45deg, #2980b9, #6dd5fa, #fce38a, #f37335);
+}
+body.weather-clouds {
+  background-image: linear-gradient(-45deg, #606c88, #3f4c6b, #bbd2c5, #536976);
+}
+body.weather-rain {
+  background-image: linear-gradient(-45deg, #000046, #1cb5e0, #004e92, #000428);
+}
+body.weather-night {
+  background-image: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #141e30);
 }
 
-#resultado.aparecer {
-  opacity: 1;
+/* Card Principal (Efeito Vidro) */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px); /* Safari */
+  border: 1px solid var(--glass-border);
+  border-radius: var(--card-radius);
+  max-width: 750px;
+  width: 100%;
+  overflow: hidden; /* Importante para não vazar conteúdo */
 }
 
-body.dark-mode {
-  background: #1c1c1c !important;
-  color: #f0f0f0;
+/* Inputs e Botões */
+.input-group {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  padding: 4px;
+  border: 1px solid var(--glass-border);
 }
 
-.dark-mode .card {
-  background: #2c2c2c;
-  color: #f0f0f0;
+.form-control {
+  background: transparent;
+  color: white;
+  font-weight: 500;
+}
+.form-control::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+.form-control:focus {
+  box-shadow: none;
+  background: transparent;
+  color: white;
 }
 
-.dark-mode .btn-primary {
-  background-color: #333;
+.btn-primary {
+  border-radius: 50px;
+  background: white;
+  color: #333;
   border: none;
+  font-weight: bold;
+  transition: transform 0.2s;
+}
+.btn-primary:hover {
+  transform: scale(1.05);
+  background: #f8f9fa;
 }
 
+.btn-location {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 0 15px;
+  font-size: 1.1rem;
+  transition: color 0.3s;
+}
+.btn-location:hover {
+  color: #ffe600;
+}
+
+/* Sugestões de Busca */
+.sugestoes-lista {
+  position: absolute;
+  top: 105%;
+  left: 10px;
+  right: 10px;
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sugestoes-lista .btn {
+  width: 100%;
+  text-align: left;
+  color: #ddd;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 10px 20px;
+  border-radius: 0;
+}
+.sugestoes-lista .btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+/* Ícone do Tempo */
+.weather-icon-floating {
+  width: 100px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Detalhes (Grid) */
+.detail-box {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid transparent;
+  transition: background 0.3s;
+}
+.detail-box:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--glass-highlight);
+}
+.detail-box i {
+  font-size: 1.2rem;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.detail-box span {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+.detail-box strong {
+  font-size: 1rem;
+}
+
+/* Correção CRÍTICA do Gráfico - Isso resolve o "infinito" */
+.chart-container-fix {
+  position: relative;
+  height: 180px; /* Altura fixa impede o loop de crescimento */
+  width: 100%;
+}
+
+/* Cards Previsão */
+.previsao-card {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  min-width: 90px;
+  padding: 10px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+.previsao-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Mapa */
 #mapa {
+  height: 220px;
+  width: 100%;
   display: none;
-  height: 300px;
-  margin-top: 1rem;
+  border-radius: 16px;
 }
-
 #mapa.visivel {
   display: block;
 }
 
-#cards-previsao {
-  justify-content: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 1rem;
+/* Utilitários */
+.oculto {
+  display: none;
+}
+.fade-in {
+  animation: fadeIn 0.8s ease forwards;
+  opacity: 0;
+}
+.delay-1 {
+  animation-delay: 0.2s;
+}
+.delay-2 {
+  animation-delay: 0.4s;
+}
+.delay-3 {
+  animation-delay: 0.6s;
 }
 
-.previsao-card {
-  background: #f8f9fa;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-body.dark-mode .previsao-card {
-  background: #333;
-  color: white;
-}
-
-/* Acessibilidade: foco visível para navegação por teclado */
-:focus {
-  outline: 2px solid #007bff;
-  outline-offset: 2px;
-}
-
-button[onclick="lerConteudo()"] {
+/* Botão Flutuante Som */
+.btn-float-read {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
   width: 50px;
   height: 50px;
-  font-size: 18px;
-  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 99;
+  transition: transform 0.2s;
+}
+.btn-float-read:hover {
+  transform: scale(1.1);
 }
 
-[vw] {
-  z-index: 9999 !important;
+/* Scrollbar Bonita */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
 }
