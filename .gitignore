@@ -1,0 +1,6 @@
+# Arquivos de sistema e dependências
+node_modules/
+.DS_Store
+
+# Arquivos de chaves e segurança (NUNCA SUBIR)
+.env
