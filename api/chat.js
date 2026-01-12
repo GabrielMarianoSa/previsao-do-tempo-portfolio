@@ -1,5 +1,111 @@
 // Arquivo: api/chat.js
 
+const normalizeText = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const pickOne = (items) => {
+  if (!items || items.length === 0) return null;
+  const idx = Math.floor(Math.random() * items.length);
+  return items[idx];
+};
+
+const knowledgeBase = {
+  // Country code (OpenWeather uses ISO-3166-1 alpha-2)
+  country: {
+    JP: [
+      "Em grande parte do Japão, o período de chuvas (tsuyu) costuma acontecer entre junho e julho, com variações por região.",
+      "No Japão, a temporada de tufões costuma influenciar mais entre agosto e outubro, principalmente em áreas costeiras.",
+      "No inverno, regiões montanhosas e o norte do Japão costumam ter neve, enquanto áreas mais ao sul tendem a ser mais amenas.",
+    ],
+    SE: [
+      "No norte da Suécia, a aurora boreal costuma ser mais fácil de ver entre setembro e março, em noites longas e com céu limpo.",
+      "No verão do norte da Suécia, pode ocorrer o fenômeno do sol da meia-noite (dias muito longos), especialmente entre maio e julho.",
+      "No inverno sueco, os dias ficam bem curtos nas latitudes altas, e o frio costuma ser mais intenso longe do litoral.",
+    ],
+    NO: [
+      "No norte da Noruega, a aurora boreal costuma ser mais visível de setembro a março, quando as noites são mais escuras.",
+      "Em áreas costeiras da Noruega, a influência do mar costuma deixar o clima mais úmido e com mudanças rápidas.",
+    ],
+    FI: [
+      "No norte da Finlândia, a aurora boreal costuma ser observada com mais chance entre setembro e março, longe das luzes da cidade.",
+      "Na Finlândia, o inverno pode trazer neve persistente em várias regiões, e o verão tende a ter dias bem longos nas latitudes altas.",
+    ],
+    IS: [
+      "Na Islândia, o tempo pode mudar rápido: sol, vento e chuva no mesmo dia não é incomum, por causa do Atlântico Norte.",
+      "Na Islândia, a aurora boreal costuma ser mais observável de setembro a abril, em noites escuras e céu limpo.",
+    ],
+    BR: [
+      "No Brasil, padrões de chuva e temperatura variam muito por região; em geral, o verão tende a ser mais chuvoso em várias áreas do país.",
+      "Em partes do Brasil, a transição entre estações pode trazer mudanças rápidas de umidade e pancadas de chuva, dependendo da região.",
+    ],
+    US: [
+      "Nos EUA, o clima varia bastante: regiões costeiras, desérticas e continentais podem ter padrões bem diferentes na mesma época do ano.",
+      "Em boa parte dos EUA, a primavera e o outono costumam ser períodos de transição com mudanças de temperatura mais rápidas.",
+    ],
+    GB: [
+      "No Reino Unido, a combinação de ventos e influência marítima costuma deixar o tempo variável e com chance de chuva ao longo do ano.",
+    ],
+    CA: [
+      "No Canadá, a diferença entre estações pode ser bem marcada; no inverno, muitas regiões têm neve e frio intenso, especialmente no interior.",
+    ],
+  },
+  // City-level (best-effort; used when user searches a known city)
+  city: {
+    tokyo: [
+      "Tóquio costuma ter verões quentes e úmidos; a época das chuvas (tsuyu) geralmente influencia o começo do verão, com variações anuais.",
+      "Em Tóquio, o fim do verão pode ter mais instabilidade por influência de tufões no Japão, dependendo do ano.",
+    ],
+    kyoto: [
+      "Kyoto costuma ter verões quentes e úmidos e invernos mais frios; por estar no interior, a amplitude térmica tende a ser maior do que em áreas costeiras.",
+    ],
+    stockholm: [
+      "Estocolmo tem estações bem definidas; no inverno, os dias ficam mais curtos e as temperaturas costumam cair bastante.",
+    ],
+  },
+};
+
+const getCuriosity = ({ place, meta }) => {
+  const placeNorm = normalizeText(place);
+
+  // City first (more specific)
+  const cityKey = placeNorm.split(",")[0].replace(/\s+/g, " ");
+  const cityList =
+    knowledgeBase.city[cityKey] ||
+    knowledgeBase.city[cityKey.replace(/\s/g, "")];
+  const cityPick = pickOne(cityList);
+  if (cityPick) return cityPick;
+
+  // Country code from meta (OpenWeather)
+  const countryCode = meta && typeof meta === "object" ? meta.country : null;
+  if (countryCode && knowledgeBase.country[countryCode]) {
+    return pickOne(knowledgeBase.country[countryCode]);
+  }
+
+  // Country name typed by user (best-effort)
+  const nameMatches = [
+    [/(\bjapao\b|\bjapan\b)/i, "JP"],
+    [/(\bsuecia\b|\bsweden\b)/i, "SE"],
+    [/(\bnoruega\b|\bnorway\b)/i, "NO"],
+    [/(\bfinlandia\b|\bfinland\b)/i, "FI"],
+    [/(\bislandia\b|\biceland\b)/i, "IS"],
+    [/(\bbrasil\b|\bbrazil\b)/i, "BR"],
+    [/(\bestados unidos\b|\beua\b|\busa\b|\bunited states\b)/i, "US"],
+    [/(\breino unido\b|\buk\b|\bunited kingdom\b)/i, "GB"],
+    [/(\bcanada\b)/i, "CA"],
+  ];
+  for (const [re, code] of nameMatches) {
+    if (re.test(placeNorm) && knowledgeBase.country[code]) {
+      return pickOne(knowledgeBase.country[code]);
+    }
+  }
+
+  return null;
+};
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Access-Control-Allow-Credentials", true);
@@ -40,6 +146,17 @@ export default async function handler(req, res) {
   let prompt = "";
   if (contexto === "curiosidade") {
     const place = mensagem || "esta cidade";
+
+    // 0) Curiosidades curadas (mais legais e mais estáveis do que tentar inventar por latitude)
+    try {
+      const curated = getCuriosity({ place, meta });
+      if (curated) {
+        return res.status(200).json({ reply: sanitize(curated), source: "kb" });
+      }
+    } catch (e) {
+      console.error("Curated curiosity error:", e);
+    }
+
     let metaText = "";
     if (meta && typeof meta === "object") {
       if (meta.country) metaText += ` País: ${meta.country}.`;
@@ -51,7 +168,7 @@ export default async function handler(req, res) {
         metaText += ` Condição observada: ${meta.description}.`;
     }
 
-    // If metadata available, generate deterministic curiosity first (more specific and avoids bad wiki matches)
+    // If metadata available, generate a simple local curiosity (fallback)
     try {
       if (
         meta &&
@@ -61,11 +178,7 @@ export default async function handler(req, res) {
         const cityName = String(place).split(",")[0];
         const country = meta.country || "";
         const lat = Number(meta.lat || 0);
-        const absLat = Math.abs(lat);
-        let zone = "temperada";
-        if (absLat <= 23.5) zone = "tropical";
-        else if (absLat > 23.5 && absLat <= 66) zone = "temperada";
-        else zone = "polar/subpolar";
+        void lat;
 
         const desc = (meta.description || "").toLowerCase();
         let note = "";
@@ -83,7 +196,7 @@ export default async function handler(req, res) {
             ? ` Agora está por volta de ${meta.temp}°C.`
             : "";
         const countryPart = country ? `, ${country}` : "";
-        const curiosity = `Em ${cityName}${countryPart} (zona ${zone}) ${note}.${tempPart}`;
+        const curiosity = `Em ${cityName}${countryPart}, ${note}.${tempPart}`;
         return res.status(200).json({ reply: sanitize(curiosity) });
       }
     } catch (e) {
@@ -152,45 +265,6 @@ export default async function handler(req, res) {
       console.error("Wikipedia climate search error:", se);
     }
 
-    // Se não encontrou página de clima, usar meta local para gerar curiosidade determinística
-    try {
-      if (
-        meta &&
-        typeof meta === "object" &&
-        (meta.lat !== undefined || meta.description || meta.temp !== undefined)
-      ) {
-        const cityName = String(place).split(",")[0];
-        const country = meta.country || "";
-        const lat = Number(meta.lat || 0);
-        const absLat = Math.abs(lat);
-        let zone = "temperada";
-        if (absLat <= 23.5) zone = "tropical";
-        else if (absLat > 23.5 && absLat <= 66) zone = "temperada";
-        else zone = "polar/subpolar";
-
-        const desc = (meta.description || "").toLowerCase();
-        let note = "";
-        if (/rain|chuva|storm|shower|chuvoso/i.test(desc))
-          note = "costuma apresentar períodos de chuva bem marcados";
-        else if (/snow|neve|nublado|nevasca/i.test(desc))
-          note =
-            "tem episódios de frio e, em algumas áreas, queda de neve no inverno";
-        else if (/clear|ensolarado|sunny/i.test(desc))
-          note = "frequentemente tem dias ensolarados";
-        else note = "apresenta variações sazonais típicas da região";
-
-        const tempPart =
-          meta.temp !== undefined
-            ? ` Agora está por volta de ${meta.temp}°C.`
-            : "";
-        const countryPart = country ? `, ${country}` : "";
-        const curiosity = `Em ${cityName}${countryPart} (zona ${zone}) ${note}.${tempPart}`;
-        return res.status(200).json({ reply: sanitize(curiosity) });
-      }
-    } catch (e) {
-      console.error("Meta-generated curiosity error:", e);
-    }
-
     // Se não encontrou página de clima, usar o resumo da página principal da cidade
     try {
       const wikiTitle = encodeURIComponent(String(place).split(",")[0]);
@@ -240,7 +314,7 @@ export default async function handler(req, res) {
       console.error("Wikipedia mobile-sections error:", ms);
     }
 
-    prompt = `Você é o SkyBot (em português). O usuário pesquisou: "${place}".${metaText} Produza UMA curiosidade curta e verdadeira (máx 2 frases) sobre o clima ou geografia de ${place}, sendo o mais específico possível para essa cidade — por exemplo mencionar estação chuvosa, influência marítima, altitude, ou fenômenos locais. Não invente números; se não tiver certeza de algo, dê um fato verificável e conciso.`;
+    prompt = `Você é o SkyBot (em português). O usuário pesquisou: "${place}".${metaText} Produza UMA curiosidade curta e verdadeira (máx 2 frases) sobre o clima ou geografia de ${place}. Prefira padrões sazonais (ex.: época de chuvas, inverno mais escuro, aurora boreal), mas se não tiver certeza, use linguagem cuidadosa como "em geral"/"costuma" e não invente números.`;
   } else {
     prompt = `Você é o SkyBot. Responda: "${mensagem}". Seja curto, simpático e útil.`;
   }
