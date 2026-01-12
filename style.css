@@ -30,7 +30,7 @@ body {
   }
 }
 
-/* Cores dos Climas (Mantive as que você gostou) */
+/* Cores dos Climas */
 body.weather-default {
   background-image: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
 }
@@ -177,10 +177,10 @@ body.weather-night {
   font-size: 1rem;
 }
 
-/* Correção CRÍTICA do Gráfico - Isso resolve o "infinito" */
+/* Gráfico */
 .chart-container-fix {
   position: relative;
-  height: 180px; /* Altura fixa impede o loop de crescimento */
+  height: 180px;
   width: 100%;
 }
 
@@ -237,7 +237,7 @@ body.weather-night {
   }
 }
 
-/* Botão Flutuante Som */
+/* Botão Som */
 .btn-float-read {
   position: fixed;
   bottom: 20px;
@@ -259,7 +259,7 @@ body.weather-night {
   transform: scale(1.1);
 }
 
-/* Scrollbar Bonita */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -270,4 +270,147 @@ body.weather-night {
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 10px;
+}
+
+/* --- SkyBot Styles (Chatbot) --- */
+#skybot-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 320px;
+  background: rgba(15, 23, 42, 0.85); /* Azul escuro moderno */
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+/* Estado Fechado */
+#skybot-container.skybot-closed {
+  height: 60px;
+  cursor: pointer;
+}
+#skybot-container.skybot-closed:hover {
+  transform: scale(1.02);
+}
+
+/* Estado Aberto */
+#skybot-container.skybot-open {
+  height: 450px;
+}
+
+/* Cabeçalho */
+.skybot-header {
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  height: 60px;
+}
+
+.bot-avatar {
+  width: 35px;
+  height: 35px;
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.toggle-icon {
+  transition: transform 0.3s;
+}
+.skybot-open .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* Corpo do Chat */
+.chat-body {
+  height: 330px;
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Mensagens */
+.message {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  max-width: 85%;
+  line-height: 1.4;
+  animation: popIn 0.3s ease;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bot-msg {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+
+.user-msg {
+  background: #0072ff;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+
+/* Input Area */
+.chat-input-area {
+  height: 60px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input-area input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 20px;
+  padding: 0 15px;
+  color: white;
+  outline: none;
+}
+.chat-input-area input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-input-area button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #00c6ff;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.chat-input-area button:hover {
+  transform: scale(1.1);
 }

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SkyCast | Dashboard</title>
+    <title>SkyCast | Dashboard & AI</title>
 
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap"
@@ -158,6 +158,40 @@
             ></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="skybot-container" class="skybot-closed">
+      <div class="skybot-header" onclick="toggleChat()">
+        <div class="d-flex align-items-center">
+          <div class="bot-avatar">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div class="ms-2">
+            <h6 class="mb-0 fw-bold">SkyBot</h6>
+            <small class="text-white-50 status-text">Online</small>
+          </div>
+        </div>
+        <i class="fas fa-chevron-up toggle-icon"></i>
+      </div>
+
+      <div id="chat-messages" class="chat-body">
+        <div class="message bot-msg">
+          Olá! Sou o SkyBot. Pesquise uma cidade para eu te contar uma
+          curiosidade climática! 🤖
+        </div>
+      </div>
+
+      <div class="chat-input-area">
+        <input
+          type="text"
+          id="user-input"
+          placeholder="Pergunte sobre o clima..."
+          onkeypress="handleEnter(event)"
+        />
+        <button onclick="sendMessage()">
+          <i class="fas fa-paper-plane"></i>
+        </button>
       </div>
     </div>
 

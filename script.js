@@ -1,6 +1,12 @@
+// 🚨 Mantenha sua chave de API segura.
+// A chave do OpenWeatherMap fica aqui no frontend (aceitável para portfólio).
+// A chave do Google Gemini fica ESCONDIDA no backend (api/chat.js).
 const apiKey = "0c8d875a528d7f6533218196609eb07b";
+
 let mapa;
 let graficoTemp = null;
+// Variável para controlar os tempos do robô para não encavalar falas
+let botTimers = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   mostrarHistorico();
@@ -35,7 +41,7 @@ function usarMinhaLocalizacao() {
   );
 }
 
-// --- Busca ---
+// --- Busca e Sugestões ---
 let timeoutBusca = null;
 function buscarSugestoes() {
   clearTimeout(timeoutBusca);
@@ -81,7 +87,7 @@ function iniciarBusca() {
   if (termo) buscarSugestoes();
 }
 
-// --- Dados Principais ---
+// --- Lógica Principal do Clima ---
 async function buscarClimaPorCoord(lugar, isGeo = false) {
   if (isGeo) Swal.close();
   const { lat, lon } = lugar;
@@ -107,9 +113,14 @@ async function buscarClimaPorCoord(lugar, isGeo = false) {
     atualizarFundo(dadosW.weather[0].id, dadosW.weather[0].icon);
     salvarHistorico(lugar.name || dadosW.name);
 
+    // 🔥 INTEGRAÇÃO SKYBOT COM ANIMAÇÃO 🔥
+    // Chama a função que faz o robô abrir, falar e fechar
+    triggerBotCuriosidade(lugar.name || dadosW.name);
+
     document.getElementById("empty-state").classList.add("oculto");
     document.getElementById("conteudo-principal").classList.remove("oculto");
   } catch (e) {
+    console.error(e);
     Swal.fire("Erro", "Falha ao carregar dados.", "error");
   }
 }
@@ -161,10 +172,10 @@ function renderizarPrevisao(lista) {
   });
 }
 
-// --- Gráfico Otimizado ---
+// --- Gráfico Chart.js ---
 function renderizarGrafico(lista) {
   const ctx = document.getElementById("tempChart").getContext("2d");
-  const dados = lista.slice(0, 8); // Apenas próximas 24h
+  const dados = lista.slice(0, 8);
   const labels = dados.map((i) => new Date(i.dt * 1000).getHours() + "h");
   const temps = dados.map((i) => i.main.temp);
 
@@ -188,7 +199,7 @@ function renderizarGrafico(lista) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // CRUCIAL: Deixa o CSS controlar a altura
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
         x: {
@@ -265,4 +276,153 @@ function lerConteudo() {
   const u = new SpeechSynthesisUtterance(msg);
   u.lang = "pt-BR";
   window.speechSynthesis.speak(u);
+}
+
+// ==========================================================
+// --- SKYBOT INTELLIGENT (Conexão Vercel + Animação) ---
+// ==========================================================
+
+function toggleChat() {
+  const chat = document.getElementById("skybot-container");
+  chat.classList.toggle("skybot-open");
+  chat.classList.toggle("skybot-closed");
+  if (chat.classList.contains("skybot-open")) {
+    document.getElementById("user-input").focus();
+  }
+}
+
+// Função auxiliar para limpar os timers se a pessoa pesquisar rápido
+function clearBotTimers() {
+  botTimers.forEach((timer) => clearTimeout(timer));
+  botTimers = [];
+}
+
+// 1. O COMPORTAMENTO "VIVO" (Abre -> Fala -> Fecha -> Abre)
+async function triggerBotCuriosidade(nomeCidade) {
+  const chat = document.getElementById("skybot-container");
+
+  // Reseta timers antigos para não encavalar animação
+  clearBotTimers();
+
+  // Fecha o chat inicialmente (se estiver aberto) para dar efeito de novidade
+  if (chat.classList.contains("skybot-open")) {
+    toggleChat();
+  }
+
+  try {
+    // Busca a curiosidade no Backend da Vercel
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mensagem: nomeCidade,
+        contexto: "curiosidade",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.reply) return; // Se der erro na IA, não faz nada
+
+    // --- SEQUÊNCIA DE ANIMAÇÃO DO ROBÔ ---
+
+    //
+
+    // 1. Espera 2 segundos, abre o chat e mostra a curiosidade
+    botTimers.push(
+      setTimeout(() => {
+        if (chat.classList.contains("skybot-closed")) toggleChat(); // Abre
+        addMessage(
+          `💡 <strong>Curiosidade sobre ${nomeCidade}:</strong> ${data.reply}`,
+          "bot"
+        );
+      }, 2000)
+    );
+
+    // 2. Espera +12 segundos (tempo de ler), e FECHA o balão
+    botTimers.push(
+      setTimeout(() => {
+        if (chat.classList.contains("skybot-open")) toggleChat(); // Fecha
+      }, 14000)
+    );
+
+    // 3. Espera +5 segundos com ele fechado, e ABRE oferecendo ajuda
+    botTimers.push(
+      setTimeout(() => {
+        if (chat.classList.contains("skybot-closed")) toggleChat(); // Abre de novo
+        addMessage(
+          `🤔 Ficou com alguma dúvida sobre o clima de <strong>${nomeCidade}</strong>? Pode me perguntar!`,
+          "bot"
+        );
+      }, 19000)
+    );
+  } catch (error) {
+    console.error("Erro no bot:", error);
+  }
+}
+
+// 2. Função para conversa livre (Enter no input)
+function handleEnter(event) {
+  if (event.key === "Enter") sendMessage();
+}
+
+// 3. Enviar mensagem do usuário
+async function sendMessage() {
+  const input = document.getElementById("user-input");
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  // Se o usuário interagiu, paramos as animações automáticas para não atrapalhar
+  clearBotTimers();
+
+  addMessage(texto, "user");
+  input.value = "";
+
+  showTyping();
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mensagem: texto,
+        contexto: "chat",
+      }),
+    });
+
+    const data = await response.json();
+    removeTyping();
+    addMessage(data.reply || "Desculpe, não entendi.", "bot");
+  } catch (error) {
+    removeTyping();
+    addMessage("Estou com problemas de conexão com o satélite... 🛰️", "bot");
+  }
+}
+
+// Utilitários de UI do Chat
+function addMessage(html, type) {
+  const chatBody = document.getElementById("chat-messages");
+  const div = document.createElement("div");
+  div.className = `message ${type === "bot" ? "bot-msg" : "user-msg"}`;
+  div.innerHTML = html;
+  chatBody.appendChild(div);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function showTyping() {
+  const chatBody = document.getElementById("chat-messages");
+  if (document.getElementById("bot-typing")) return;
+
+  const loadingDiv = document.createElement("div");
+  loadingDiv.className = "message bot-msg text-muted fst-italic";
+  loadingDiv.id = "bot-typing";
+  loadingDiv.innerHTML =
+    '<i class="fas fa-circle-notch fa-spin me-2"></i>Consultando IA...';
+  chatBody.appendChild(loadingDiv);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function removeTyping() {
+  const loading = document.getElementById("bot-typing");
+  if (loading) loading.remove();
 }
