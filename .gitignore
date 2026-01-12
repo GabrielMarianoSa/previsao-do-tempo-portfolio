@@ -4,3 +4,12 @@ node_modules/
 
 # Arquivos de chaves e segurança (NUNCA SUBIR)
 .env
+.vercel
+
+# Ferramentas locais / scripts de teste (não commitar)
+dev-server.js
+test-*.js
+list-*.js
+
+# Logs
+*.log

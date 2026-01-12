@@ -1,0 +1,14 @@
+# Never deploy secrets
+.env
+.env.*
+
+# Local tooling
+/dev-server.js
+/test-*.js
+/list-*.js
+
+# Logs
+*.log
+
+# Vercel local metadata
+.vercel

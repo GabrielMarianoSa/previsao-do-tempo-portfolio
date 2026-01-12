@@ -1,6 +1,6 @@
 // 🚨 Mantenha sua chave de API segura.
 // A chave do OpenWeatherMap fica aqui no frontend (aceitável para portfólio).
-// A chave do Google Gemini fica ESCONDIDA no backend (api/chat.js).
+// A chave do provedor de IA (Hugging Face) fica ESCONDIDA no backend (api/chat.js).
 const apiKey = "0c8d875a528d7f6533218196609eb07b";
 
 let mapa;
@@ -115,7 +115,15 @@ async function buscarClimaPorCoord(lugar, isGeo = false) {
 
     // 🔥 INTEGRAÇÃO SKYBOT COM ANIMAÇÃO 🔥
     // Chama a função que faz o robô abrir, falar e fechar
-    triggerBotCuriosidade(lugar.name || dadosW.name);
+    triggerBotCuriosidade({
+      name: lugar.name || dadosW.name,
+      lat,
+      lon,
+      country: dadosW.sys && dadosW.sys.country,
+      temp: dadosW.main && dadosW.main.temp,
+      description:
+        dadosW.weather && dadosW.weather[0] && dadosW.weather[0].description,
+    });
 
     document.getElementById("empty-state").classList.add("oculto");
     document.getElementById("conteudo-principal").classList.remove("oculto");
@@ -298,7 +306,7 @@ function clearBotTimers() {
 }
 
 // 1. O COMPORTAMENTO "VIVO" (Abre -> Fala -> Fecha -> Abre)
-async function triggerBotCuriosidade(nomeCidade) {
+async function triggerBotCuriosidade(place) {
   const chat = document.getElementById("skybot-container");
 
   // Reseta timers antigos para não encavalar animação
@@ -310,19 +318,33 @@ async function triggerBotCuriosidade(nomeCidade) {
   }
 
   try {
-    // Busca a curiosidade no Backend da Vercel
+    // Busca a curiosidade no Backend da Vercel enviando metadados se houver
+    const payload = {
+      mensagem: typeof place === "string" ? place : place.name,
+      contexto: "curiosidade",
+    };
+    if (place && typeof place === "object")
+      payload.meta = {
+        lat: place.lat,
+        lon: place.lon,
+        country: place.country,
+        temp: place.temp,
+        description: place.description,
+      };
+
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mensagem: nomeCidade,
-        contexto: "curiosidade",
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
 
     if (!data.reply) return; // Se der erro na IA, não faz nada
+    const displayName =
+      typeof place === "string"
+        ? place
+        : (place && place.name) || payload.mensagem;
 
     // --- SEQUÊNCIA DE ANIMAÇÃO DO ROBÔ ---
 
@@ -333,7 +355,7 @@ async function triggerBotCuriosidade(nomeCidade) {
       setTimeout(() => {
         if (chat.classList.contains("skybot-closed")) toggleChat(); // Abre
         addMessage(
-          `💡 <strong>Curiosidade sobre ${nomeCidade}:</strong> ${data.reply}`,
+          `💡 <strong>Curiosidade sobre ${displayName}:</strong> ${data.reply}`,
           "bot"
         );
       }, 2000)
@@ -351,7 +373,7 @@ async function triggerBotCuriosidade(nomeCidade) {
       setTimeout(() => {
         if (chat.classList.contains("skybot-closed")) toggleChat(); // Abre de novo
         addMessage(
-          `🤔 Ficou com alguma dúvida sobre o clima de <strong>${nomeCidade}</strong>? Pode me perguntar!`,
+          `🤔 Ficou com alguma dúvida sobre o clima de <strong>${displayName}</strong>? Pode me perguntar!`,
           "bot"
         );
       }, 19000)
